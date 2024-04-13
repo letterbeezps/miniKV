@@ -60,3 +60,35 @@ func Test_keys(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log(b)
 }
+
+func Test_activeKey(t *testing.T) {
+	k, err := encodeTxActiveKey(12)
+	assert.Nil(t, err)
+	t.Log(k)
+
+	id, err := decodeTxActiveKey(k)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(12), id)
+}
+
+func Test_txWritKey(t *testing.T) {
+	k, err := encodeTxWriteKey(12, "aa_bb")
+	assert.Nil(t, err)
+	t.Log(k)
+
+	id, origin_key, err := decodeTxWriteKey(k)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(12), id)
+	assert.Equal(t, "aa_bb", origin_key)
+}
+
+func Test_txKey(t *testing.T) {
+	k, err := encodeTxKey(12, "aa_bb_cc")
+	assert.Nil(t, err)
+	t.Log(k)
+
+	id, origin_key, err := decodeTxKey(k)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(12), id)
+	assert.Equal(t, "aa_bb_cc", origin_key)
+}
