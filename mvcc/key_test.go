@@ -46,7 +46,7 @@ func Test_keys(t *testing.T) {
 	assert.Nil(t, err)
 	key1 = string(buf1)
 	t.Log(key1)
-	_, err = orderedcode.Parse(key1, orderedcode.Decr(&b))
+	_, err = orderedcode.Parse(key1[3:], orderedcode.Decr(&b))
 	assert.Nil(t, err)
 	t.Log(b)
 
