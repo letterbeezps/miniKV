@@ -105,3 +105,88 @@ func (tx *TX) Write(key string, value []byte) error {
 	tx.Engine.Set(txKey, value)
 	return nil
 }
+
+func (tx *TX) Set(key string, value []byte) error {
+	return tx.Write(key, value)
+}
+
+func (tx *TX) Delete(key string) error {
+	return tx.Write(key, []byte{})
+}
+
+func (tx *TX) Commit() error {
+	startKey, err := encodeTxWriteKey(tx.State.TxID, "")
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with id: %d", tx.State.TxID))
+	}
+	endKey := getPrefixEnd(startKey)
+	start := internal.NewBound(startKey, internal.Include)
+	end := internal.NewBound(endKey, internal.Exclude)
+	iter := tx.Engine.Iter(start, end)
+	for iter.IsValid() {
+		tx.Engine.Delete(iter.Key())
+		iter.Next()
+	}
+
+	activeKey, err := encodeTxActiveKey(tx.State.TxID)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", tx.State.TxID))
+	}
+	tx.Engine.Delete(activeKey)
+	return nil
+}
+
+func (tx *TX) RollBack() error {
+	startKey, err := encodeTxWriteKey(tx.State.TxID, "")
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with id: %d", tx.State.TxID))
+	}
+	endKey := getPrefixEnd(startKey)
+	start := internal.NewBound(startKey, internal.Include)
+	end := internal.NewBound(endKey, internal.Exclude)
+	iter := tx.Engine.Iter(start, end)
+	for iter.IsValid() {
+		_, origin_key, err := decodeTxWriteKey(iter.Key())
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("decodeTxWriteKey with key: %s", iter.Key()))
+		}
+		txKey, err := encodeTxKey(tx.State.TxID, origin_key)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", txKey))
+		}
+		tx.Engine.Delete(txKey)
+		iter.Next()
+	}
+
+	activeKey, err := encodeTxActiveKey(tx.State.TxID)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", tx.State.TxID))
+	}
+	tx.Engine.Delete(activeKey)
+	return nil
+}
+
+func (tx *TX) Get(key string) ([]byte, error) {
+	endTxKey, err := encodeTxKey(0, key)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", key))
+	}
+	startTxKey, err := encodeTxKey(tx.State.TxID, key)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", key))
+	}
+	start := internal.NewBound(startTxKey, internal.Include)
+	end := internal.NewBound(endTxKey, internal.Include)
+	iter := tx.Engine.Iter(start, end)
+	for iter.IsValid() {
+		check_id, _, err := decodeTxKey(iter.Key())
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("got bad txKey: %s", iter.Key()))
+		}
+		if tx.State.IsVisible(check_id) {
+			return iter.Value(), nil
+		}
+		iter.Next()
+	}
+	return nil, nil
+}
