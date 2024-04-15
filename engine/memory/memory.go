@@ -89,15 +89,22 @@ func (m *Memory) Iter(start, end internal.Bound) engine.Iterator {
 	iter := m.Data.Iter()
 	key, value := "", []byte{}
 	valid := true
-	switch start.BoundType {
-	case internal.NoBound:
+
+	if start.BoundType == internal.NoBound {
 		valid = iter.First()
-	case internal.Include, internal.Exclude:
+	} else {
 		valid = iter.Seek(start.Key)
-		if valid && start.BoundType == internal.Exclude && iter.Key() == start.Key {
-			valid = iter.Next()
-		}
 	}
+	if valid && start.BoundType == internal.Exclude && iter.Key() == start.Key {
+		valid = iter.Next()
+	}
+	if valid && end.BoundType == internal.Include && iter.Key() > end.Key {
+		valid = false
+	}
+	if valid && end.BoundType == internal.Exclude && iter.Key() >= end.Key {
+		valid = false
+	}
+
 	if valid {
 		key = iter.Key()
 		value = iter.Value()
@@ -111,6 +118,7 @@ func (m *Memory) Iter(start, end internal.Bound) engine.Iterator {
 	}
 }
 
+// todo : fix bug
 func (m *Memory) ReverseIter(start, end internal.Bound) engine.Iterator {
 	iter := m.Data.Iter()
 	key, value := "", []byte{}
