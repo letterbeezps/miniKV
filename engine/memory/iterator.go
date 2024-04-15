@@ -15,6 +15,9 @@ type MemoryIterator struct {
 }
 
 func (iter *MemoryIterator) Value() []byte {
+	if len(iter.V) == 0 {
+		return []byte{}
+	}
 	return iter.V
 }
 

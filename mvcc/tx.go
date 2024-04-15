@@ -188,5 +188,5 @@ func (tx *TX) Get(key string) ([]byte, error) {
 		}
 		iter.Next()
 	}
-	return nil, nil
+	return []byte{}, nil
 }

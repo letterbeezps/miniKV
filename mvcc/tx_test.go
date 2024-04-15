@@ -98,6 +98,7 @@ func Test_GetSet(t *testing.T) {
 	ret, err = tx5.Get("c")
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{4}, ret)
+	assert.Nil(t, tx5.RollBack())
 
 	assert.Nil(t, tx3.Commit())
 
