@@ -21,7 +21,7 @@ func (tx *TX) Begin() error {
 	tx.Lock.Lock()
 	defer tx.Lock.Unlock()
 
-	txId := uint64(0)
+	txId := uint64(1)
 	txIdBytes, ok := tx.Engine.Get(NextTxID)
 	if ok {
 		txId = binary.BigEndian.Uint64(txIdBytes)
