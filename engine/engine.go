@@ -8,18 +8,25 @@ import (
 )
 
 type Engine interface {
+	// requested
 	Get(key string) ([]byte, bool)
 
+	// requested
 	Set(key string, value []byte)
 
+	// requested
 	Delete(key string)
 
+	// option
 	Scan(start, end internal.Bound, iter func(key string, value []byte) bool)
 
+	// option
 	Reverse(start, end internal.Bound, iter func(key string, value []byte) bool)
 
+	// requested
 	Iter(start, end internal.Bound) Iterator
 
+	// option
 	ReverseIter(start, end internal.Bound) Iterator
 }
 
@@ -180,6 +187,12 @@ func ScanTest(engine Engine, t *testing.T) {
 		iterator.Next()
 		i++
 	}
+
+	iterator = engine.Iter(
+		internal.NewBound("d", internal.Include),
+		internal.NewBound("", internal.NoBound),
+	)
+	assert.False(t, iterator.IsValid())
 
 	iterator = engine.Iter(
 		internal.NewBound("aab", internal.Include),

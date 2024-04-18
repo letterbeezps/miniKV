@@ -21,7 +21,7 @@ func (tx *TX) Begin() error {
 	tx.Lock.Lock()
 	defer tx.Lock.Unlock()
 
-	txId := uint64(0)
+	txId := uint64(1)
 	txIdBytes, ok := tx.Engine.Get(NextTxID)
 	if ok {
 		txId = binary.BigEndian.Uint64(txIdBytes)
@@ -88,7 +88,7 @@ func (tx *TX) Write(key string, value []byte) error {
 			return errors.Wrap(err, fmt.Sprintf("got bad txKey: %s", iter.Key()))
 		}
 		if !tx.State.IsVisible(check_id) {
-			return errors.Wrap(err, fmt.Sprintf("serialization, cur tx: %d, exist: %d", tx.State.TxID, check_id))
+			return errors.Wrap(ErrorSerialization, fmt.Sprintf("cur tx: %d, exist: %d", tx.State.TxID, check_id))
 		}
 		iter.Next()
 	}
@@ -123,9 +123,13 @@ func (tx *TX) Commit() error {
 	start := internal.NewBound(startKey, internal.Include)
 	end := internal.NewBound(endKey, internal.Exclude)
 	iter := tx.Engine.Iter(start, end)
+	removeKeys := []string{}
 	for iter.IsValid() {
-		tx.Engine.Delete(iter.Key())
+		removeKeys = append(removeKeys, iter.Key())
 		iter.Next()
+	}
+	for _, key := range removeKeys {
+		tx.Engine.Delete(key)
 	}
 
 	activeKey, err := encodeTxActiveKey(tx.State.TxID)
@@ -145,7 +149,9 @@ func (tx *TX) RollBack() error {
 	start := internal.NewBound(startKey, internal.Include)
 	end := internal.NewBound(endKey, internal.Exclude)
 	iter := tx.Engine.Iter(start, end)
+	removeKeys := []string{}
 	for iter.IsValid() {
+		removeKeys = append(removeKeys, iter.Key())
 		_, origin_key, err := decodeTxWriteKey(iter.Key())
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("decodeTxWriteKey with key: %s", iter.Key()))
@@ -154,8 +160,12 @@ func (tx *TX) RollBack() error {
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", txKey))
 		}
-		tx.Engine.Delete(txKey)
+		removeKeys = append(removeKeys, txKey)
 		iter.Next()
+	}
+
+	for _, key := range removeKeys {
+		tx.Engine.Delete(key)
 	}
 
 	activeKey, err := encodeTxActiveKey(tx.State.TxID)
@@ -188,5 +198,5 @@ func (tx *TX) Get(key string) ([]byte, error) {
 		}
 		iter.Next()
 	}
-	return nil, nil
+	return []byte{}, nil
 }
