@@ -4,12 +4,20 @@ import (
 	"sync"
 
 	"github.com/letterbeezps/miniKV/engine"
+	"github.com/letterbeezps/miniKV/engine/memory"
 	"github.com/pkg/errors"
 )
 
 type MVCC struct {
 	Lock   *sync.Mutex
 	Engine engine.Engine
+}
+
+func NewMVCC() *MVCC {
+	return &MVCC{
+		Lock:   &sync.Mutex{},
+		Engine: memory.NewMemory(),
+	}
 }
 
 func (m *MVCC) Begin() (*TX, error) {
