@@ -9,6 +9,10 @@ A simple key-value storage engine in GO. The main purpose of this project is to 
 
 More pratices are still begin planned.
 
+## Architecture
+
+![architecture](./note/img/miniKV/minikv.png)
+
 ## example
 
 ### GetSet
