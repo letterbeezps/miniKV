@@ -9,7 +9,7 @@ import (
 
 func main() {
 	db := mv.NewMVCC()
-	tx, err := db.Begin()
+	tx, err := db.Begin(false)
 	if err != nil {
 		log.Fatal(err)
 	}

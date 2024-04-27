@@ -20,12 +20,12 @@ func NewMVCC() *MVCC {
 	}
 }
 
-func (m *MVCC) Begin() (*TX, error) {
+func (m *MVCC) Begin(readOnly bool) (*TX, error) {
 	tx := &TX{
 		Lock:   m.Lock,
 		Engine: m.Engine,
 	}
-	err := tx.Begin()
+	err := tx.Begin(readOnly)
 	if err != nil {
 		return nil, errors.Wrap(err, "tx begin")
 	}

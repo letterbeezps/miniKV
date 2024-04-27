@@ -17,7 +17,7 @@ type TX struct {
 	State  *TxState
 }
 
-func (tx *TX) Begin() error {
+func (tx *TX) Begin(readOnly bool) error {
 	tx.Lock.Lock()
 	defer tx.Lock.Unlock()
 
@@ -35,14 +35,16 @@ func (tx *TX) Begin() error {
 	}
 	tx.State = &TxState{
 		TxID:     txId,
-		ReadOnly: false,
+		ReadOnly: readOnly,
 		ActiveTx: active,
 	}
-	activeKey, err := encodeTxActiveKey(txId)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", txId))
+	if !readOnly {
+		activeKey, err := encodeTxActiveKey(txId)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", txId))
+		}
+		tx.Engine.Set(activeKey, []byte{})
 	}
-	tx.Engine.Set(activeKey, []byte{})
 	return nil
 }
 
@@ -64,7 +66,9 @@ func (tx *TX) scanActive() (map[TXID]struct{}, error) {
 }
 
 func (tx *TX) Write(key string, value []byte) error {
-
+	if tx.State.ReadOnly {
+		return errors.Wrap(ErrorReadOnly, fmt.Sprintf("tx with id %d is read only", tx.State.TxID))
+	}
 	miniTxID := tx.State.TxID + 1
 	for id := range tx.State.ActiveTx {
 		if id < miniTxID {
@@ -115,6 +119,9 @@ func (tx *TX) Delete(key string) error {
 }
 
 func (tx *TX) Commit() error {
+	if tx.State.ReadOnly {
+		return errors.Wrap(ErrorReadOnly, fmt.Sprintf("tx with id %d is read only, not need commit", tx.State.TxID))
+	}
 	startKey, err := encodeTxWriteKey(tx.State.TxID, "")
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with id: %d", tx.State.TxID))
@@ -141,6 +148,9 @@ func (tx *TX) Commit() error {
 }
 
 func (tx *TX) RollBack() error {
+	if tx.State.ReadOnly {
+		return errors.Wrap(ErrorReadOnly, fmt.Sprintf("tx with id %d is read only, not need rollback", tx.State.TxID))
+	}
 	startKey, err := encodeTxWriteKey(tx.State.TxID, "")
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with id: %d", tx.State.TxID))
