@@ -3,6 +3,7 @@ package memory
 import (
 	"github.com/letterbeezps/miniKV/engine"
 	internal "github.com/letterbeezps/miniKV/internal"
+	iface "github.com/letterbeezps/miniKV/internal/iface"
 	"github.com/tidwall/btree"
 )
 
@@ -85,7 +86,7 @@ func (m *Memory) Reverse(start, end internal.Bound, iter func(key string, value 
 	}
 }
 
-func (m *Memory) Iter(start, end internal.Bound) engine.Iterator {
+func (m *Memory) Iter(start, end internal.Bound) iface.Iterator {
 	iter := m.Data.Iter()
 	key, value := "", []byte{}
 	valid := true
@@ -119,7 +120,7 @@ func (m *Memory) Iter(start, end internal.Bound) engine.Iterator {
 }
 
 // todo : fix bug
-func (m *Memory) ReverseIter(start, end internal.Bound) engine.Iterator {
+func (m *Memory) ReverseIter(start, end internal.Bound) iface.Iterator {
 	iter := m.Data.Iter()
 	key, value := "", []byte{}
 	valid := true
