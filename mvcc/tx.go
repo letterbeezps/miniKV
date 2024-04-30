@@ -215,17 +215,14 @@ func (tx *TX) Get(key string) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (tx *TX) Iter(start, end internal.Bound) (iface.Iterator, error) {
-	if start.BoundType == internal.NoBound || end.BoundType == internal.NoBound {
-		return nil, ErrorNotSupportNoBound
-	}
-	endTxKey, err := encodeTxKey(0, end.Key)
+func (tx *TX) Iter(start, end string) (iface.Iterator, error) {
+	endTxKey, err := encodeTxKey(0, end)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", end.Key))
+		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", end))
 	}
-	startTxKey, err := encodeTxKey(tx.State.TxID, start.Key)
+	startTxKey, err := encodeTxKey(tx.State.TxID, start)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", start.Key))
+		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", start))
 	}
 	startEngineKey := internal.NewBound(startTxKey, internal.Include)
 
@@ -238,9 +235,6 @@ func (tx *TX) Iter(start, end internal.Bound) (iface.Iterator, error) {
 		Start:          start,
 		End:            end,
 		EngineIterator: engineIter,
-	}
-	if start.BoundType == internal.Exclude && start.Key != "" {
-		ret.LastK = start.Key
 	}
 	err = ret.Next()
 	if err != nil {

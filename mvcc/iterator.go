@@ -3,15 +3,14 @@ package mvcc
 import (
 	"fmt"
 
-	internal "github.com/letterbeezps/miniKV/internal"
 	"github.com/letterbeezps/miniKV/internal/iface"
 	"github.com/pkg/errors"
 )
 
 type TXIterator struct {
 	State          *TxState
-	Start          internal.Bound
-	End            internal.Bound
+	Start          string
+	End            string
 	LastK          string
 	K              string
 	V              []byte
@@ -35,6 +34,7 @@ func (iter *TXIterator) IsValid() bool {
 
 func (iter *TXIterator) Next() error {
 	var nextK string
+	var nextV []byte
 	for iter.EngineIterator.IsValid() {
 		check_id, origin_key, err := decodeTxKey(iter.EngineIterator.Key())
 		if err != nil {
@@ -47,17 +47,15 @@ func (iter *TXIterator) Next() error {
 			}
 			continue
 		}
-		if iter.End.BoundType == internal.Include && origin_key > iter.End.Key {
-			break
-		}
-		if iter.End.BoundType == internal.Exclude && origin_key >= iter.End.Key {
+		if origin_key > iter.End {
 			break
 		}
 		iter.LastK = origin_key
 		nextK = origin_key
-		iter.V = iter.EngineIterator.Value()
+		nextV = iter.EngineIterator.Value()
 		break
 	}
 	iter.K = nextK
+	iter.V = nextV
 	return nil
 }

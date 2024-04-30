@@ -3,7 +3,6 @@ package mvcc
 import (
 	"testing"
 
-	internal "github.com/letterbeezps/miniKV/internal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +27,7 @@ func Test_Tx_Iteraotr(t *testing.T) {
 	t.Log("/////////////////////////////  tx2 /////////////////////")
 	tx2, err := db.Begin(false)
 	assert.Nil(t, err)
-	iter, err := tx2.Iter(internal.NewBound("a", internal.Include), internal.NewBound("f", internal.Include))
+	iter, err := tx2.Iter("a", "f")
 	assert.Nil(t, err)
 	datas := []struct {
 		key string
@@ -54,7 +53,7 @@ func Test_Tx_Iteraotr(t *testing.T) {
 	t.Log("/////////////////////////////  tx3 /////////////////////")
 	tx3, err := db.Begin(false)
 	assert.Nil(t, err)
-	iter, err = tx3.Iter(internal.NewBound("a", internal.Include), internal.NewBound("f", internal.Include))
+	iter, err = tx3.Iter("a", "f")
 	assert.Nil(t, err)
 	datas = []struct {
 		key string
@@ -81,7 +80,7 @@ func Test_Tx_Iteraotr(t *testing.T) {
 	t.Log("/////////////////////////////  tx4 /////////////////////")
 	tx4, err := db.Begin(false)
 	assert.Nil(t, err)
-	iter, err = tx4.Iter(internal.NewBound("a", internal.Include), internal.NewBound("f", internal.Include))
+	iter, err = tx4.Iter("a", "f")
 	assert.Nil(t, err)
 	datas = []struct {
 		key string
@@ -111,7 +110,7 @@ func Test_Tx_Iteraotr(t *testing.T) {
 	t.Log("/////////////////////////////  tx6 /////////////////////")
 	tx6, err := db.Begin(true)
 	assert.Nil(t, err)
-	iter, err = tx6.Iter(internal.NewBound("a", internal.Include), internal.NewBound("f", internal.Include))
+	iter, err = tx6.Iter("a", "f")
 	assert.Nil(t, err)
 	datas = []struct {
 		key string
