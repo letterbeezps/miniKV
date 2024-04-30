@@ -7,5 +7,5 @@ type Iterator interface {
 
 	IsValid() bool
 
-	Next()
+	Next() error
 }
