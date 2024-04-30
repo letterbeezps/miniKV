@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	internal "github.com/letterbeezps/miniKV/internal"
+	iface "github.com/letterbeezps/miniKV/internal/iface"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,26 +19,16 @@ type Engine interface {
 	Delete(key string)
 
 	// option
-	Scan(start, end internal.Bound, iter func(key string, value []byte) bool)
+	// Scan(start, end internal.Bound, iter func(key string, value []byte) bool)
 
 	// option
-	Reverse(start, end internal.Bound, iter func(key string, value []byte) bool)
+	// Reverse(start, end internal.Bound, iter func(key string, value []byte) bool)
 
 	// requested
-	Iter(start, end internal.Bound) Iterator
+	Iter(start, end internal.Bound) iface.Iterator
 
 	// option
-	ReverseIter(start, end internal.Bound) Iterator
-}
-
-type Iterator interface {
-	Value() []byte
-
-	Key() string
-
-	IsValid() bool
-
-	Next()
+	// ReverseIter(start, end internal.Bound) Iterator
 }
 
 //////// test ////////////
@@ -295,16 +286,16 @@ func ReverseScanTest(engine Engine, t *testing.T) {
 
 	////////////////////////// reverse iter//////////////////
 
-	iterator := engine.ReverseIter(
-		internal.NewBound("", internal.NoBound),
-		internal.NewBound("", internal.NoBound),
-	)
-	i := len(datas) - 1
-	for iterator.IsValid() {
-		assert.Equal(t, datas[i].key, iterator.Key())
-		assert.Equal(t, datas[i].val, iterator.Value())
-		// t.Log("key: ", iterator.Key(), " value: ", iterator.Value())
-		iterator.Next()
-		i--
-	}
+	// iterator := engine.ReverseIter(
+	// 	internal.NewBound("", internal.NoBound),
+	// 	internal.NewBound("", internal.NoBound),
+	// )
+	// i := len(datas) - 1
+	// for iterator.IsValid() {
+	// 	assert.Equal(t, datas[i].key, iterator.Key())
+	// 	assert.Equal(t, datas[i].val, iterator.Value())
+	// 	// t.Log("key: ", iterator.Key(), " value: ", iterator.Value())
+	// 	iterator.Next()
+	// 	i--
+	// }
 }

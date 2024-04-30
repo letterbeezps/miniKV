@@ -65,10 +65,11 @@ func (iter *MemoryIterator) prev() {
 	}
 }
 
-func (iter *MemoryIterator) Next() {
+func (iter *MemoryIterator) Next() error {
 	if !iter.IsReverse {
 		iter.next()
 	} else {
 		iter.prev()
 	}
+	return nil
 }

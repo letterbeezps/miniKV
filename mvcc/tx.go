@@ -8,6 +8,7 @@ import (
 
 	"github.com/letterbeezps/miniKV/engine"
 	internal "github.com/letterbeezps/miniKV/internal"
+	"github.com/letterbeezps/miniKV/internal/iface"
 	"github.com/pkg/errors"
 )
 
@@ -206,7 +207,38 @@ func (tx *TX) Get(key string) ([]byte, error) {
 		if tx.State.IsVisible(check_id) {
 			return iter.Value(), nil
 		}
-		iter.Next()
+		err = iter.Next()
+		if err != nil {
+			return nil, errors.Wrap(err, "iter.Next()")
+		}
 	}
 	return []byte{}, nil
+}
+
+func (tx *TX) Iter(start, end string) (iface.Iterator, error) {
+	endTxKey, err := encodeTxKey(0, end)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", end))
+	}
+	startTxKey, err := encodeTxKey(tx.State.TxID, start)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", start))
+	}
+	startEngineKey := internal.NewBound(startTxKey, internal.Include)
+
+	endEngineKey := internal.NewBound(endTxKey, internal.Include)
+
+	engineIter := tx.Engine.Iter(startEngineKey, endEngineKey)
+
+	ret := &TXIterator{
+		State:          tx.State,
+		Start:          start,
+		End:            end,
+		EngineIterator: engineIter,
+	}
+	err = ret.Next()
+	if err != nil {
+		return nil, errors.Wrap(err, "Next")
+	}
+	return ret, nil
 }
