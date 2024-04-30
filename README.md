@@ -60,9 +60,15 @@ func main() {
         log.Fatal(err)
     }
     iter, err := tx3.Iter("a", "c")
+    if err != nil {
+        log.Fatal(err)
+    }
     for iter.IsValid() {
         fmt.Println(iter.Key())
         fmt.Println(string(iter.Value()))
+        if err := iter.Next(); err != nil {
+            log.Fatal(err)
+        }
     }
 }
 ```
