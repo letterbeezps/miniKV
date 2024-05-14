@@ -130,4 +130,27 @@ func Test_Tx_Iteraotr(t *testing.T) {
 		assert.Nil(t, iter.Next())
 		i++
 	}
+
+	iter, err = tx6.Iter("c", "f")
+	assert.Nil(t, err)
+	datas = []struct {
+		key string
+		val []byte
+	}{
+		{"e", []byte("e_1")},
+		{"f", []byte("f_2")},
+	}
+	i = 0
+	for iter.IsValid() {
+		assert.Equal(t, datas[i].key, iter.Key())
+		assert.Equal(t, datas[i].val, iter.Value())
+		t.Log(iter.Key())
+		t.Log(string(iter.Value()))
+		assert.Nil(t, iter.Next())
+		i++
+	}
+
+	iter, err = tx6.Iter("g", "y")
+	assert.Nil(t, err)
+	assert.False(t, iter.IsValid())
 }
