@@ -137,14 +137,14 @@ func (tx *TX) Commit() error {
 		iter.Next()
 	}
 	for _, key := range removeKeys {
-		tx.Engine.Delete(key)
+		tx.Engine.DeleteReal(key)
 	}
 
 	activeKey, err := encodeTxActiveKey(tx.State.TxID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", tx.State.TxID))
 	}
-	tx.Engine.Delete(activeKey)
+	tx.Engine.DeleteReal(activeKey)
 	return nil
 }
 
@@ -176,14 +176,14 @@ func (tx *TX) RollBack() error {
 	}
 
 	for _, key := range removeKeys {
-		tx.Engine.Delete(key)
+		tx.Engine.DeleteReal(key)
 	}
 
 	activeKey, err := encodeTxActiveKey(tx.State.TxID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", tx.State.TxID))
 	}
-	tx.Engine.Delete(activeKey)
+	tx.Engine.DeleteReal(activeKey)
 	return nil
 }
 

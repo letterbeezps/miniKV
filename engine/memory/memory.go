@@ -33,6 +33,10 @@ func (m *Memory) Set(key string, value []byte) {
 }
 
 func (m *Memory) Delete(key string) {
+	m.Data.Set(key, []byte{})
+}
+
+func (m *Memory) DeleteReal(key string) {
 	m.Data.Delete(key)
 }
 

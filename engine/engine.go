@@ -18,6 +18,9 @@ type Engine interface {
 	// requested
 	Delete(key string)
 
+	// requested
+	DeleteReal(key string)
+
 	// option
 	// Scan(start, end internal.Bound, iter func(key string, value []byte) bool)
 
@@ -58,7 +61,7 @@ func EngineTestGetSet(engine Engine, t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, []byte{}, ret)
 
-	engine.Delete("a")
+	engine.DeleteReal("a")
 	ret, ok = engine.Get("a")
 	assert.False(t, ok)
 	assert.Equal(t, []byte{}, ret)
