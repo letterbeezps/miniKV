@@ -50,33 +50,6 @@ func decodeTxActiveKey(key string) (TXID, error) {
 	return id, nil
 }
 
-//////// txWrite ////////////
-
-func encodeTxWriteKey(txId TXID, key string) (string, error) {
-	k, err := orderedcode.Append(nil, orderedcode.Decr(uint64(txId)))
-	if err != nil {
-		return "", errors.Wrap(err, "getTxWriteKey")
-	}
-	ret := fmt.Sprintf("%s_%s", TxWritePrefix, string(k))
-	if key != "" {
-		ret = fmt.Sprintf("%s_%s", ret, key)
-	}
-	return ret, nil
-}
-
-func decodeTxWriteKey(key string) (TXID, string, error) {
-	keys := strings.Split(key, "_")
-	if len(keys) < 3 {
-		return 0, "", errors.New(fmt.Sprintf("bad format of TxWriteKey: %s", key))
-	}
-	var id uint64
-	_, err := orderedcode.Parse(keys[1], orderedcode.Decr(&id))
-	if err != nil {
-		return 0, "", errors.Wrap(err, fmt.Sprintf("parse failed: %s", key))
-	}
-	return id, strings.Join(keys[2:], "_"), nil
-}
-
 //////// txKey ////////////
 
 func encodeTxKey(txId TXID, key string) (string, error) {
