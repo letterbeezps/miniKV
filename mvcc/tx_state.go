@@ -3,9 +3,10 @@ package mvcc
 type TXID = uint64
 
 type TxState struct {
-	TxID     TXID
-	ReadOnly bool
-	ActiveTx map[TXID]struct{}
+	TxID       TXID
+	ReadOnly   bool
+	ActiveTx   map[TXID]struct{}
+	ActiveKeys map[string]struct{} // keys writen by currency tx
 }
 
 // check whether the given txId is visible to currenct tx

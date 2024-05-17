@@ -9,16 +9,12 @@ type TwoMergeIterator struct {
 	First       iface.Iterator
 	Second      iface.Iterator
 	ChooseFirst bool
-	Less        func(f, s string) bool
-	Equal       func(f, s string) bool
 }
 
-func NewTwoMergeIterstor(f, s iface.Iterator, less, equal func(f, s string) bool) (*TwoMergeIterator, error) {
+func NewTwoMergeIterstor(f, s iface.Iterator) (*TwoMergeIterator, error) {
 	ret := &TwoMergeIterator{
 		First:  f,
 		Second: s,
-		Less:   less,
-		Equal:  equal,
 	}
 	if err := ret.skipSecond(); err != nil {
 		return nil, errors.Wrap(err, "skipSecond")
@@ -34,11 +30,11 @@ func (iter *TwoMergeIterator) chooseFirst() bool {
 	if !iter.Second.IsValid() {
 		return true
 	}
-	return iter.Less(iter.First.Key(), iter.Second.Key())
+	return iter.First.Key() < iter.Second.Key()
 }
 
 func (iter *TwoMergeIterator) skipSecond() error {
-	if iter.First.IsValid() && iter.Second.IsValid() && iter.Equal(iter.First.Key(), iter.Second.Key()) {
+	if iter.First.IsValid() && iter.Second.IsValid() && iter.First.Key() == iter.Second.Key() {
 		return iter.Second.Next()
 	}
 	return nil

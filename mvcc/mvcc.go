@@ -11,12 +11,14 @@ import (
 type MVCC struct {
 	Lock   *sync.Mutex
 	Engine engine.Engine
+	Cache  engine.Engine
 }
 
 func NewMVCC() *MVCC {
 	return &MVCC{
 		Lock:   &sync.Mutex{},
 		Engine: memory.NewMemory(),
+		Cache:  memory.NewMemory(),
 	}
 }
 
@@ -24,6 +26,7 @@ func (m *MVCC) Begin(readOnly bool) (*TX, error) {
 	tx := &TX{
 		Lock:   m.Lock,
 		Engine: m.Engine,
+		Cache:  m.Cache,
 	}
 	err := tx.Begin(readOnly)
 	if err != nil {

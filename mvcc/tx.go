@@ -14,7 +14,8 @@ import (
 
 type TX struct {
 	Lock   *sync.Mutex
-	Engine engine.Engine
+	Cache  engine.Engine // store active data, which will be written to engine after commit or deleted with rollback
+	Engine engine.Engine // store stable data.
 	State  *TxState
 }
 
@@ -35,16 +36,17 @@ func (tx *TX) Begin(readOnly bool) error {
 		return errors.Wrap(err, "scanActive")
 	}
 	tx.State = &TxState{
-		TxID:     txId,
-		ReadOnly: readOnly,
-		ActiveTx: active,
+		TxID:       txId,
+		ReadOnly:   readOnly,
+		ActiveTx:   active,
+		ActiveKeys: map[string]struct{}{},
 	}
 	if !readOnly {
 		activeKey, err := encodeTxActiveKey(txId)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", txId))
 		}
-		tx.Engine.Set(activeKey, []byte{})
+		tx.Cache.Set(activeKey, []byte{})
 	}
 	return nil
 }
@@ -52,7 +54,7 @@ func (tx *TX) Begin(readOnly bool) error {
 func (tx *TX) scanActive() (map[TXID]struct{}, error) {
 	start := internal.NewBound(TxActivePrefix, internal.Include)
 	end := internal.NewBound(TxActivePrefixEnd, internal.Exclude)
-	iter := tx.Engine.Iter(start, end)
+	iter := tx.Cache.Iter(start, end)
 	ret := map[TXID]struct{}{}
 	for iter.IsValid() {
 		key := iter.Key()
@@ -86,7 +88,12 @@ func (tx *TX) Write(key string, value []byte) error {
 	}
 	start := internal.NewBound(startTxKey, internal.Include)
 	end := internal.NewBound(endTxKey, internal.Include)
-	iter := tx.Engine.Iter(start, end)
+	cacheIter := tx.Cache.Iter(start, end)
+	engineIter := tx.Engine.Iter(start, end)
+	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	if err != nil {
+		return errors.Wrap(err, "NewTwoMergeIterstor")
+	}
 	for iter.IsValid() {
 		check_id, _, err := decodeTxKey(iter.Key())
 		if err != nil {
@@ -98,16 +105,12 @@ func (tx *TX) Write(key string, value []byte) error {
 		iter.Next()
 	}
 
-	tnWriteKey, err := encodeTxWriteKey(tx.State.TxID, key)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with key: %s", key))
-	}
-	tx.Engine.Set(tnWriteKey, []byte{})
 	txKey, err := encodeTxKey(tx.State.TxID, key)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", key))
 	}
-	tx.Engine.Set(txKey, value)
+	tx.Cache.Set(txKey, value)
+	tx.State.ActiveKeys[txKey] = struct{}{}
 	return nil
 }
 
@@ -123,28 +126,19 @@ func (tx *TX) Commit() error {
 	if tx.State.ReadOnly {
 		return errors.Wrap(ErrorReadOnly, fmt.Sprintf("tx with id %d is read only, not need commit", tx.State.TxID))
 	}
-	startKey, err := encodeTxWriteKey(tx.State.TxID, "")
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with id: %d", tx.State.TxID))
+	for k := range tx.State.ActiveKeys {
+		if v, ok := tx.Cache.Get(k); ok {
+			tx.Engine.Set(k, v)
+			tx.Cache.DeleteReal(k)
+		} else {
+			return ErrorTxWriteKeyNotAtCache
+		}
 	}
-	endKey := getPrefixEnd(startKey)
-	start := internal.NewBound(startKey, internal.Include)
-	end := internal.NewBound(endKey, internal.Exclude)
-	iter := tx.Engine.Iter(start, end)
-	removeKeys := []string{}
-	for iter.IsValid() {
-		removeKeys = append(removeKeys, iter.Key())
-		iter.Next()
-	}
-	for _, key := range removeKeys {
-		tx.Engine.Delete(key)
-	}
-
 	activeKey, err := encodeTxActiveKey(tx.State.TxID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", tx.State.TxID))
 	}
-	tx.Engine.Delete(activeKey)
+	tx.Cache.DeleteReal(activeKey)
 	return nil
 }
 
@@ -152,38 +146,18 @@ func (tx *TX) RollBack() error {
 	if tx.State.ReadOnly {
 		return errors.Wrap(ErrorReadOnly, fmt.Sprintf("tx with id %d is read only, not need rollback", tx.State.TxID))
 	}
-	startKey, err := encodeTxWriteKey(tx.State.TxID, "")
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("encodeTxWriteKey with id: %d", tx.State.TxID))
-	}
-	endKey := getPrefixEnd(startKey)
-	start := internal.NewBound(startKey, internal.Include)
-	end := internal.NewBound(endKey, internal.Exclude)
-	iter := tx.Engine.Iter(start, end)
-	removeKeys := []string{}
-	for iter.IsValid() {
-		removeKeys = append(removeKeys, iter.Key())
-		_, origin_key, err := decodeTxWriteKey(iter.Key())
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("decodeTxWriteKey with key: %s", iter.Key()))
+	for k := range tx.State.ActiveKeys {
+		if _, ok := tx.Cache.Get(k); ok {
+			tx.Cache.DeleteReal(k)
+		} else {
+			return ErrorTxWriteKeyNotAtCache
 		}
-		txKey, err := encodeTxKey(tx.State.TxID, origin_key)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("encodeTxKey with key: %s", txKey))
-		}
-		removeKeys = append(removeKeys, txKey)
-		iter.Next()
 	}
-
-	for _, key := range removeKeys {
-		tx.Engine.Delete(key)
-	}
-
 	activeKey, err := encodeTxActiveKey(tx.State.TxID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("getTxActiveKey with %d", tx.State.TxID))
 	}
-	tx.Engine.Delete(activeKey)
+	tx.Cache.DeleteReal(activeKey)
 	return nil
 }
 
@@ -198,7 +172,12 @@ func (tx *TX) Get(key string) ([]byte, error) {
 	}
 	start := internal.NewBound(startTxKey, internal.Include)
 	end := internal.NewBound(endTxKey, internal.Include)
-	iter := tx.Engine.Iter(start, end)
+	cacheIter := tx.Cache.Iter(start, end)
+	engineIter := tx.Engine.Iter(start, end)
+	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewTwoMergeIterstor")
+	}
 	for iter.IsValid() {
 		check_id, _, err := decodeTxKey(iter.Key())
 		if err != nil {
@@ -228,13 +207,18 @@ func (tx *TX) Iter(start, end string) (iface.Iterator, error) {
 
 	endEngineKey := internal.NewBound(endTxKey, internal.Include)
 
+	cacheIter := tx.Cache.Iter(startEngineKey, endEngineKey)
 	engineIter := tx.Engine.Iter(startEngineKey, endEngineKey)
+	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewTwoMergeIterstor")
+	}
 
 	ret := &TXIterator{
 		State:          tx.State,
 		Start:          start,
 		End:            end,
-		EngineIterator: engineIter,
+		EngineIterator: iter,
 	}
 	err = ret.Next()
 	if err != nil {
