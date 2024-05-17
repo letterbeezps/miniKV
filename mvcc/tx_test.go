@@ -1,10 +1,8 @@
 package mvcc
 
 import (
-	"sync"
 	"testing"
 
-	"github.com/letterbeezps/miniKV/engine/memory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,10 +12,7 @@ func Test_getPrefixEnd(t *testing.T) {
 }
 
 func Test_TxBegin(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
@@ -52,10 +47,7 @@ func Test_TxBegin(t *testing.T) {
 }
 
 func Test_GetSet(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 
 	tx1, err := mvcc.Begin(false)
 
@@ -124,10 +116,7 @@ func Test_GetSet(t *testing.T) {
 }
 
 func Test_delete_conflict(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
@@ -152,10 +141,7 @@ func Test_delete_conflict(t *testing.T) {
 }
 
 func Test_get_isolation(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
@@ -204,10 +190,7 @@ func Test_get_isolation(t *testing.T) {
 }
 
 func Test_set(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx0, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx0.Set("a", []byte{0}))
@@ -216,10 +199,7 @@ func Test_set(t *testing.T) {
 }
 
 func Test_set_conflict(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	tx2, err := mvcc.Begin(false)
@@ -240,10 +220,7 @@ func Test_set_conflict(t *testing.T) {
 }
 
 func Test_rollback(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx0, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx0.Set("a", []byte{0}))
@@ -306,10 +283,7 @@ func Test_rollback(t *testing.T) {
 }
 
 func Test_dirty_write(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx1.Set("a", []byte{0}))
@@ -320,10 +294,7 @@ func Test_dirty_write(t *testing.T) {
 }
 
 func Test_dirty_read(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx1.Set("a", []byte{0}))
@@ -336,10 +307,7 @@ func Test_dirty_read(t *testing.T) {
 }
 
 func Test_lost_update(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx1, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	tx2, err := mvcc.Begin(false)
@@ -357,10 +325,7 @@ func Test_lost_update(t *testing.T) {
 }
 
 func Test_fuzzy_read(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx0, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx0.Set("a", []byte{0}))
@@ -385,10 +350,7 @@ func Test_fuzzy_read(t *testing.T) {
 }
 
 func Test_read_skew(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx0, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx0.Set("a", []byte{0}))
@@ -415,10 +377,7 @@ func Test_read_skew(t *testing.T) {
 }
 
 func Test_write_skew(t *testing.T) {
-	mvcc := MVCC{
-		Lock:   &sync.Mutex{},
-		Engine: memory.NewMemory(),
-	}
+	mvcc := NewMVCC()
 	tx0, err := mvcc.Begin(false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx0.Set("a", []byte{0}))
