@@ -207,13 +207,18 @@ func (tx *TX) Iter(start, end string) (iface.Iterator, error) {
 
 	endEngineKey := internal.NewBound(endTxKey, internal.Include)
 
+	cacheIter := tx.Cache.Iter(startEngineKey, endEngineKey)
 	engineIter := tx.Engine.Iter(startEngineKey, endEngineKey)
+	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewTwoMergeIterstor")
+	}
 
 	ret := &TXIterator{
 		State:          tx.State,
 		Start:          start,
 		End:            end,
-		EngineIterator: engineIter,
+		EngineIterator: iter,
 	}
 	err = ret.Next()
 	if err != nil {
