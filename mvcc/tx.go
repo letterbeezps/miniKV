@@ -90,9 +90,9 @@ func (tx *TX) Write(key string, value []byte) error {
 	end := internal.NewBound(endTxKey, internal.Include)
 	cacheIter := tx.Cache.Iter(start, end)
 	engineIter := tx.Engine.Iter(start, end)
-	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	iter, err := internal.NewTwoMergeIterator(cacheIter, engineIter)
 	if err != nil {
-		return errors.Wrap(err, "NewTwoMergeIterstor")
+		return errors.Wrap(err, "NewTwoMergeIterator")
 	}
 	for iter.IsValid() {
 		check_id, _, err := decodeTxKey(iter.Key())
@@ -174,9 +174,9 @@ func (tx *TX) Get(key string) ([]byte, error) {
 	end := internal.NewBound(endTxKey, internal.Include)
 	cacheIter := tx.Cache.Iter(start, end)
 	engineIter := tx.Engine.Iter(start, end)
-	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	iter, err := internal.NewTwoMergeIterator(cacheIter, engineIter)
 	if err != nil {
-		return nil, errors.Wrap(err, "NewTwoMergeIterstor")
+		return nil, errors.Wrap(err, "NewTwoMergeIterator")
 	}
 	for iter.IsValid() {
 		check_id, _, err := decodeTxKey(iter.Key())
@@ -209,9 +209,9 @@ func (tx *TX) Iter(start, end string) (iface.Iterator, error) {
 
 	cacheIter := tx.Cache.Iter(startEngineKey, endEngineKey)
 	engineIter := tx.Engine.Iter(startEngineKey, endEngineKey)
-	iter, err := internal.NewTwoMergeIterstor(cacheIter, engineIter)
+	iter, err := internal.NewTwoMergeIterator(cacheIter, engineIter)
 	if err != nil {
-		return nil, errors.Wrap(err, "NewTwoMergeIterstor")
+		return nil, errors.Wrap(err, "NewTwoMergeIterator")
 	}
 
 	ret := &TXIterator{

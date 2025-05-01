@@ -11,7 +11,7 @@ type TwoMergeIterator struct {
 	ChooseFirst bool
 }
 
-func NewTwoMergeIterstor(f, s iface.Iterator) (*TwoMergeIterator, error) {
+func NewTwoMergeIterator(f, s iface.Iterator) (*TwoMergeIterator, error) {
 	ret := &TwoMergeIterator{
 		First:  f,
 		Second: s,
